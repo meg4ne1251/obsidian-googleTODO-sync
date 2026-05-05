@@ -37,7 +37,8 @@ def _task_needs_update(body: dict, remote: dict) -> bool:
         v_remote = remote.get(key)
 
         if key == "notes":
-            if (v_body or "") != (v_remote or ""):
+            if (v_body or "").strip() != (v_remote or "").strip():
+                logger.debug("Mismatch in notes for '%s': body=%r, remote=%r", body.get("title"), v_body, v_remote)
                 return True
             continue
 
@@ -47,10 +48,12 @@ def _task_needs_update(body: dict, remote: dict) -> bool:
                 # リモート側にある自動付与された完了日時と異なっていても更新しない
                 continue
             if v_body != v_remote:
+                logger.debug("Mismatch in completed for '%s': body=%r, remote=%r", body.get("title"), v_body, v_remote)
                 return True
             continue
 
         if v_body != v_remote:
+            logger.debug("Mismatch in %s for '%s': body=%r, remote=%r", key, body.get("title"), v_body, v_remote)
             return True
     return False
 
@@ -65,6 +68,7 @@ def sync_file(
     if list_name is None:
         raise ValueError(f"Unsupported filename: {file_path}")
 
+    logger.info("Processing file: %s", file_path.name)
     tl: TaskList = find_or_create_tasklist(backend, list_name)
     todos = parser.parse_file(file_path)
     remote_index = _build_remote_index(backend, tl.id)
@@ -87,18 +91,26 @@ def sync_file(
         body = mapping.todo_to_gtask_body(todo)
         if todo.gtasks_id and todo.gtasks_id in remote_index:
             if _task_needs_update(body, remote_index[todo.gtasks_id]):
+                logger.info("  Updating task: %s", todo.title)
+                # 削除されたフィールドを確実にクリアするため、明示的に null または空文字を設定
+                if "notes" not in body:
+                    body["notes"] = ""
+                if "due" not in body:
+                    body["due"] = None
                 backend.update_task(tl.id, todo.gtasks_id, body)
                 result.updated += 1
             else:
                 result.skipped += 1
         elif todo.gtasks_id and todo.gtasks_id not in remote_index:
             # ID あるが Google 側で削除済み。再作成して ID 更新。
+            logger.info("  Re-creating deleted task: %s", todo.title)
             created = backend.insert_task(tl.id, body)
             todo.gtasks_id = created["id"]
             todos[idx] = todo
             file_changed = True
             result.created += 1
         else:
+            logger.info("  Creating new task: %s", todo.title)
             created = backend.insert_task(tl.id, body)
             todo.gtasks_id = created["id"]
             todos[idx] = todo
