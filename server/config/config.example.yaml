@@ -1,0 +1,46 @@
+# Obsidian ↔ Google Tasks sync configuration
+# このファイルを config.yaml にコピーして利用する。
+
+paths:
+  # ローカル Vault ディレクトリ（livesync CLI が mirror するパス）
+  vault_dir: /var/lib/obsidian-sync/vault
+  # SQLite DB ファイルパス
+  db_path: /var/lib/obsidian-sync/state.sqlite
+  # ログ出力ディレクトリ
+  log_dir: /var/log/obsidian-sync
+
+livesync:
+  # livesync CLI 実行コマンド（フルパス推奨）
+  cli_command: livesync-cli
+  # 各サブコマンドのタイムアウト秒
+  timeout_sec: 300
+
+google:
+  # OAuth2 クライアント情報の JSON ファイルパス
+  credentials_file: /var/lib/obsidian-sync/credentials.json
+  # 認証済みトークンを保存するファイルパス
+  token_file: /var/lib/obsidian-sync/token.json
+  # Google Tasks API のスコープ
+  scopes:
+    - https://www.googleapis.com/auth/tasks
+
+locks:
+  # ロック競合時の判定値
+  timeout_sec: 600         # LOCK_TIMEOUT
+  retry_interval_sec: 10   # LOCK_RETRY_INTERVAL
+  max_retry: 6             # LOCK_MAX_RETRY
+
+verify:
+  # 整合性検証の通知 Webhook URL（空欄時は送信しない）
+  webhook_url: ""
+  # Zabbix sender 設定（将来対応用、未設定なら無効）
+  zabbix:
+    enabled: false
+    server: ""
+    host: ""
+    item_count: ""
+    item_log: ""
+
+logging:
+  # ログレベル（DEBUG / INFO / WARN / ERROR）
+  level: INFO

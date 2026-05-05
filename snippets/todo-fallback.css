@@ -1,0 +1,48 @@
+/* Obsidian CSS スニペット
+ * プラグインが無効・未インストールの場合のフォールバック表示。
+ * Snippets フォルダに配置して有効化する。
+ *
+ * 想定: Obsidian の Markdown レンダラが `created::` などを
+ * `<span class="dataview-result-key">created</span>:: 値` の形でレンダリングする
+ * dataview プラグインに依存。dataview 不在時はテキストのまま見える。
+ */
+
+.dataview .dataview-result-key {
+    font-weight: 600;
+}
+
+/* 期限バッジ */
+.dataview .dataview-result-key:has(+ :not(:empty))[data-key="due"] + span {
+    display: inline-block;
+    padding: 0 0.4rem;
+    border-radius: 4px;
+    color: #fff;
+    background: #2f6fd9;
+}
+
+/* 作成日バッジ */
+.dataview .dataview-result-key[data-key="created"] + span {
+    display: inline-block;
+    padding: 0 0.4rem;
+    border-radius: 4px;
+    color: #fff;
+    background: #888;
+}
+
+/* notes ブロック */
+.dataview .dataview-result-key[data-key="notes"] + span,
+.dataview .dataview-result-key[data-key="notes"] ~ p {
+    border-left: 3px solid var(--background-modifier-border);
+    padding-left: 0.6rem;
+    color: var(--text-muted);
+}
+
+/* 隠す */
+.dataview .dataview-result-key[data-key="gtasks_id"],
+.dataview .dataview-result-key[data-key="gtasks_id"] + span,
+.dataview .dataview-result-key[data-key="completed_at"],
+.dataview .dataview-result-key[data-key="completed_at"] + span,
+.dataview .dataview-result-key[data-key="archived_from"],
+.dataview .dataview-result-key[data-key="archived_from"] + span {
+    display: none;
+}

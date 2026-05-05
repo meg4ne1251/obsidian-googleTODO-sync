@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-gtodo-sync",
+  "name": "Google Todo Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "todo-*.md の Todo ブロックをカード表示・編集する。Google Tasks 同期と組み合わせて利用する。",
+  "author": "Obsidian-GoogleTODO-Sync",
+  "isDesktopOnly": false
+}

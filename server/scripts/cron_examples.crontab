@@ -1,0 +1,23 @@
+# Obsidian ↔ Google Tasks 同期システム — cron 設定例
+# `crontab -e` で取り込むか、システムの /etc/cron.d/ に配置する。
+# パスは実環境に合わせて修正すること。
+
+# 環境変数（PATH, CONFIG）
+PATH=/usr/local/bin:/usr/bin:/bin
+GTODO_HOME=/opt/obsidian-sync
+GTODO_CONFIG=/opt/obsidian-sync/config/config.yaml
+
+# 5分ごと: livesync の定期同期 (sync → mirror → sync) を `livesync_vault` ロック下で
+*/5 * * * *  $GTODO_HOME/scripts/cron_periodic.sh >> /var/log/obsidian-sync/cron.log 2>&1
+
+# 5分ごと: Google Tasks → Obsidian のポーリング同期
+*/5 * * * *  cd $GTODO_HOME && /usr/bin/python3 -m src.sync_gt_to_obs --config $GTODO_CONFIG >> /var/log/obsidian-sync/gt2obs.log 2>&1
+
+# 5分ごと: Obsidian → Google Tasks の同期
+*/5 * * * *  cd $GTODO_HOME && /usr/bin/python3 -m src.sync_obs_to_gt --config $GTODO_CONFIG >> /var/log/obsidian-sync/obs2gt.log 2>&1
+
+# 1時間ごと: 完了 1 時間以上経過した Todo をアーカイブへ
+17 * * * *   cd $GTODO_HOME && /usr/bin/python3 -m src.archive --config $GTODO_CONFIG >> /var/log/obsidian-sync/archive.log 2>&1
+
+# 1時間ごと: 整合性検証（少しずらして実行）
+37 * * * *   cd $GTODO_HOME && /usr/bin/python3 -m src.verify --config $GTODO_CONFIG >> /var/log/obsidian-sync/verify.log 2>&1

@@ -1,0 +1,95 @@
+/* Google Todo Sync — カード表示スタイル */
+
+.gtodo-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.gtodo-card {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background: var(--background-primary-alt);
+}
+
+.gtodo-card--completed .gtodo-card__title {
+    text-decoration: line-through;
+    opacity: 0.65;
+}
+
+.gtodo-card__checkbox {
+    margin-top: 0.25rem;
+    cursor: pointer;
+}
+
+.gtodo-card__body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.gtodo-card__title {
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.gtodo-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.gtodo-badge {
+    display: inline-block;
+    padding: 0.05rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #fff;
+    cursor: pointer;
+}
+
+.gtodo-badge--due-overdue { background: #d92f2f; }
+.gtodo-badge--due-today   { background: #f08c00; }
+.gtodo-badge--due-future  { background: #2f6fd9; }
+.gtodo-badge--created     { background: #888; cursor: default; }
+
+.gtodo-card__notes {
+    border-left: 3px solid var(--background-modifier-border);
+    padding-left: 0.6rem;
+    color: var(--text-muted);
+    font-size: 0.95em;
+    cursor: pointer;
+}
+
+.gtodo-add-wrapper {
+    margin-top: 0.6rem;
+}
+
+.gtodo-add-button {
+    background: transparent;
+    border: 1px dashed var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
+
+.gtodo-add-button:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+/* モーダル */
+.gtodo-modal__buttons {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
