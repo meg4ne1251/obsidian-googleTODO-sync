@@ -116,10 +116,15 @@ git clone <このリポジトリ> /opt/obsidian-sync
 
 ### ステップ 2 — Python 依存ライブラリのインストール
 
+このプロジェクトは仮想環境（venv）を使わず、システム全体にインストールする前提で設計されています。
+`pip install` 時に「仮想環境を使用することを推奨します」という警告が表示される場合がありますが、無視して問題ありません。
+
 ```bash
 cd /opt/obsidian-sync/server
-python3 -m pip install -r requirements.txt
+python3 -m pip install --break-system-packages -r requirements.txt
 ```
+
+> **注意:** `--break-system-packages` は Debian/Ubuntu 系 OS（Python 3.11 以降）で必要なフラグです。他のディストリビューションや古い Python バージョンでは不要な場合があります。その場合は `--break-system-packages` を省いて実行してください。
 
 ### ステップ 3 — Google Cloud Console で OAuth クライアントを作成する
 
