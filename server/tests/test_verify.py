@@ -21,7 +21,7 @@ def make_cfg(tmp: Path, *, webhook_url: str = "") -> Config:
     vault.mkdir(exist_ok=True)
     return Config(
         paths=PathsConfig(vault_dir=vault, db_path=tmp / "s.sqlite", log_dir=tmp / "log"),
-        livesync=LivesyncConfig(cli_command="echo", timeout_sec=10),
+        livesync=LivesyncConfig(npm="npm", cli_dir=".", db_dir=".", timeout_sec=10),
         google=GoogleConfig(credentials_file=tmp / "c.json", token_file=tmp / "t.json", scopes=[]),
         locks=LocksConfig(),
         verify=VerifyConfig(webhook_url=webhook_url, zabbix=ZabbixConfig()),

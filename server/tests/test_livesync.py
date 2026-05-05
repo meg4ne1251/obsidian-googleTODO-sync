@@ -37,15 +37,13 @@ class LivesyncCliTest(unittest.TestCase):
         cli = make_cli(runner)
         cli.sync()
         cli.mirror()
-        cli.pull()
-        cli.push()
+        cli.push_file(Path(VAULT_DIR) / "test.md")
         self.assertEqual(
             called,
             [
                 [NPM, "--prefix", CLI_DIR, "run", "cli", "--", DB_DIR, "sync"],
                 [NPM, "--prefix", CLI_DIR, "run", "cli", "--", DB_DIR, "mirror", VAULT_DIR],
-                [NPM, "--prefix", CLI_DIR, "run", "cli", "--", DB_DIR, "pull", VAULT_DIR],
-                [NPM, "--prefix", CLI_DIR, "run", "cli", "--", DB_DIR, "push", VAULT_DIR],
+                [NPM, "--prefix", CLI_DIR, "run", "cli", "--", DB_DIR, "push", f"{VAULT_DIR}test.md", "test.md"],
             ],
         )
 
@@ -57,9 +55,9 @@ class LivesyncCliTest(unittest.TestCase):
 
         cli = make_cli(runner)
         cli.sync_pull()
-        self.assertEqual(called, ["sync", "pull"])
+        self.assertEqual(called, ["sync", "mirror"])
         called.clear()
-        cli.push_sync()
+        cli.push_sync([Path(VAULT_DIR) / "test.md"])
         self.assertEqual(called, ["push", "sync"])
 
     def test_runner_failure_propagates(self) -> None:

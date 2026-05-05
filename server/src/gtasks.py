@@ -95,8 +95,9 @@ class GoogleApiBackend(Backend):
         
         for attempt in range(max_retries):
             try:
-                # 1分間のリクエスト数制限対策として、リクエスト間に少しだけウェイトを入れる
-                time.sleep(0.1)
+                # Google Tasks API の「100リクエスト/100秒/ユーザー」制限に抵触しないよう、
+                # リクエスト間にウェイトを入れる（安全のため1秒）
+                time.sleep(1.0)
                 return request.execute()
             except HttpError as e:
                 # 403 (Quota Exceeded / Rate Limit), 429 (Too Many Requests), 5xx エラーの場合リトライ

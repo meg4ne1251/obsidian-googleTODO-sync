@@ -33,7 +33,24 @@ def _build_remote_index(backend: Backend, tasklist_id: str) -> Dict[str, dict]:
 def _task_needs_update(body: dict, remote: dict) -> bool:
     """ローカルの body とリモートタスクを比較し、更新が必要なら True を返す。"""
     for key in ("title", "status", "notes", "due", "completed"):
-        if body.get(key) != remote.get(key):
+        v_body = body.get(key)
+        v_remote = remote.get(key)
+
+        if key == "notes":
+            if (v_body or "") != (v_remote or ""):
+                return True
+            continue
+
+        if key == "completed":
+            if v_body is None:
+                # ローカル側で completed の指定がない場合（completed_at:: がない場合など）、
+                # リモート側にある自動付与された完了日時と異なっていても更新しない
+                continue
+            if v_body != v_remote:
+                return True
+            continue
+
+        if v_body != v_remote:
             return True
     return False
 
