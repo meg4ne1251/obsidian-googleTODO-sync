@@ -72,13 +72,17 @@ class GoogleApiBackend(Backend):
                 flow = InstalledAppFlow.from_client_secrets_file(
                     str(credentials_file), scopes
                 )
-                import webbrowser
-                try:
-                    webbrowser.get()
-                    creds = flow.run_local_server(port=0)
-                except webbrowser.Error:
-                    # ブラウザが使えないサーバー環境ではコンソール認証にフォールバック
-                    creds = flow.run_console()
+                flow.redirect_uri = "http://localhost"
+                auth_url, _ = flow.authorization_url(prompt="consent")
+                print("\n" + "=" * 60)
+                print("Google認証が必要です。以下のURLをブラウザで開いてください:")
+                print(auth_url)
+                print("=" * 60)
+                print("認証後、リダイレクト先のURLをそのまま貼り付けてください")
+                print("（'このサイトにアクセスできません' が出ても問題ありません）")
+                redirect_response = input("リダイレクトURL: ").strip()
+                flow.fetch_token(authorization_response=redirect_response)
+                creds = flow.credentials
             token_file.parent.mkdir(parents=True, exist_ok=True)
             token_file.write_text(creds.to_json(), encoding="utf-8")
         self.service = build("tasks", "v1", credentials=creds, cache_discovery=False)
