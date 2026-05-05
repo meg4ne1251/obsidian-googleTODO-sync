@@ -81,6 +81,8 @@ class GoogleApiBackend(Backend):
                 print("認証後、リダイレクト先のURLをそのまま貼り付けてください")
                 print("（'このサイトにアクセスできません' が出ても問題ありません）")
                 redirect_response = input("リダイレクトURL: ").strip()
+                import os as _os
+                _os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
                 flow.fetch_token(authorization_response=redirect_response)
                 creds = flow.credentials
             token_file.parent.mkdir(parents=True, exist_ok=True)
