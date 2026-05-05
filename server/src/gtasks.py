@@ -89,18 +89,38 @@ class GoogleApiBackend(Backend):
             token_file.write_text(creds.to_json(), encoding="utf-8")
         self.service = build("tasks", "v1", credentials=creds, cache_discovery=False)
 
+    def _execute_with_retry(self, request, max_retries=5, base_delay=1.0):
+        import random
+        from googleapiclient.errors import HttpError
+        
+        for attempt in range(max_retries):
+            try:
+                # 1分間のリクエスト数制限対策として、リクエスト間に少しだけウェイトを入れる
+                time.sleep(0.1)
+                return request.execute()
+            except HttpError as e:
+                # 403 (Quota Exceeded / Rate Limit), 429 (Too Many Requests), 5xx エラーの場合リトライ
+                if e.resp.status in [403, 429, 500, 502, 503, 504] and attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning(f"API Rate limit or server error (status {e.resp.status}), retrying in {delay:.2f}s... (Attempt {attempt+1}/{max_retries})")
+                    time.sleep(delay)
+                else:
+                    raise
+
     def list_tasklists(self) -> List[TaskList]:
         out: List[TaskList] = []
         page_token: Optional[str] = None
         while True:
-            resp = self.service.tasklists().list(maxResults=100, pageToken=page_token).execute()
+            req = self.service.tasklists().list(maxResults=100, pageToken=page_token)
+            resp = self._execute_with_retry(req)
             out.extend(TaskList(id=item["id"], title=item["title"]) for item in resp.get("items", []))
             page_token = resp.get("nextPageToken")
             if not page_token:
                 return out
 
     def create_tasklist(self, title: str) -> TaskList:
-        resp = self.service.tasklists().insert(body={"title": title}).execute()
+        req = self.service.tasklists().insert(body={"title": title})
+        resp = self._execute_with_retry(req)
         return TaskList(id=resp["id"], title=resp["title"])
 
     def list_tasks(self, tasklist_id: str, *, show_completed: bool = True,
@@ -118,23 +138,27 @@ class GoogleApiBackend(Backend):
             )
             if updated_min:
                 params["updatedMin"] = updated_min
-            resp = self.service.tasks().list(**params).execute()
+            req = self.service.tasks().list(**params)
+            resp = self._execute_with_retry(req)
             out.extend(resp.get("items", []))
             page_token = resp.get("nextPageToken")
             if not page_token:
                 return out
 
     def insert_task(self, tasklist_id: str, body: dict) -> dict:
-        return self.service.tasks().insert(tasklist=tasklist_id, body=body).execute()
+        req = self.service.tasks().insert(tasklist=tasklist_id, body=body)
+        return self._execute_with_retry(req)
 
     def update_task(self, tasklist_id: str, task_id: str, body: dict) -> dict:
         full_body = {**body, "id": task_id}
-        return self.service.tasks().update(
+        req = self.service.tasks().update(
             tasklist=tasklist_id, task=task_id, body=full_body
-        ).execute()
+        )
+        return self._execute_with_retry(req)
 
     def delete_task(self, tasklist_id: str, task_id: str) -> None:
-        self.service.tasks().delete(tasklist=tasklist_id, task=task_id).execute()
+        req = self.service.tasks().delete(tasklist=tasklist_id, task=task_id)
+        self._execute_with_retry(req)
 
 
 # ---------------------------------------------------------------------------
