@@ -30,6 +30,14 @@ def _build_remote_index(backend: Backend, tasklist_id: str) -> Dict[str, dict]:
     return {t["id"]: t for t in tasks}
 
 
+def _task_needs_update(body: dict, remote: dict) -> bool:
+    """ローカルの body とリモートタスクを比較し、更新が必要なら True を返す。"""
+    for key in ("title", "status", "notes", "due", "completed"):
+        if body.get(key) != remote.get(key):
+            return True
+    return False
+
+
 def sync_file(
     file_path: Path,
     *,
@@ -61,8 +69,11 @@ def sync_file(
     for idx, todo in enumerate(todos):
         body = mapping.todo_to_gtask_body(todo)
         if todo.gtasks_id and todo.gtasks_id in remote_index:
-            backend.update_task(tl.id, todo.gtasks_id, body)
-            result.updated += 1
+            if _task_needs_update(body, remote_index[todo.gtasks_id]):
+                backend.update_task(tl.id, todo.gtasks_id, body)
+                result.updated += 1
+            else:
+                result.skipped += 1
         elif todo.gtasks_id and todo.gtasks_id not in remote_index:
             # ID あるが Google 側で削除済み。再作成して ID 更新。
             created = backend.insert_task(tl.id, body)

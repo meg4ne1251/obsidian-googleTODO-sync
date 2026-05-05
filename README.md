@@ -198,12 +198,27 @@ cd /opt/obsidian-sync/server
 python3 -m src.sync_obs_to_gt --config config/config.yaml
 ```
 
-初回実行時はブラウザが開き Google の認可画面が表示される。
-許可すると `token_file` にトークンが保存され、以降はブラウザ認証なしで実行できる。
+**サーバー環境（ブラウザなし）での認証手順:**
 
-> サーバー環境でブラウザが使えない場合:
-> ローカル PC で一度認証してから `token.json` をサーバーにコピーする方法でも可。
-> その際は `credentials.json` のリダイレクト URI を `http://localhost` にしておく。
+ブラウザが使えない環境では、以下のように URL が表示される:
+
+```
+============================================================
+Google認証が必要です。以下のURLをブラウザで開いてください:
+https://accounts.google.com/o/oauth2/auth?...
+============================================================
+認証後、リダイレクト先のURLをそのまま貼り付けてください
+（'このサイトにアクセスできません' が出ても問題ありません）
+リダイレクトURL:
+```
+
+1. 表示された URL をローカル PC のブラウザで開く
+2. Google アカウントで認証・許可する
+3. ブラウザが `http://localhost/?code=...` にリダイレクトしようとして「接続できません」と表示されるが**問題ない**
+4. ブラウザのアドレスバーに表示されている URL（`http://localhost/?code=...` から始まる文字列全体）をコピーしてターミナルに貼り付けて Enter
+5. `token_file` にトークンが保存され、以降はブラウザ認証なしで実行できる
+
+> **注意:** 認証コードは一度しか使えない。エラーが出て再実行する場合は必ず新しいURLで認証し直すこと。
 
 ### ステップ 7 — 動作確認（手動実行）
 
@@ -530,4 +545,41 @@ python3 -m src.sync_obs_to_gt --config config/config.yaml --no-livesync
 python3 -m src.sync_gt_to_obs --config config/config.yaml --no-livesync
 python3 -m src.archive        --config config/config.yaml --no-livesync
 python3 -m src.verify         --config config/config.yaml --no-livesync
+```
+
+### `InsecureTransportError` が出て OAuth が失敗する
+
+`http://localhost` へのリダイレクトを oauthlib がセキュリティエラーとして弾く場合がある。
+コードは自動で `OAUTHLIB_INSECURE_TRANSPORT=1` を設定するが、手動で設定することもできる:
+
+```bash
+export OAUTHLIB_INSECURE_TRANSPORT=1
+python3 -m src.sync_obs_to_gt --config config/config.yaml
+```
+
+### `webbrowser.Error: could not locate runnable browser`
+
+サーバー環境では X11 や Wayland が動いていないためブラウザが起動できない。
+このエラーが出た場合は自動的にコンソール認証（URL表示方式）へ切り替わるため、
+上記「ステップ 6」の手順に従う。切り替わらない場合はコードが古い可能性があるので `git pull` する。
+
+### livesync CLI の `pull requires two arguments` エラー
+
+obsidian-livesync の CLI コマンド仕様:
+
+| コマンド | 用途 |
+|---|---|
+| `sync` | ローカル DB ↔ リモート CouchDB の双方向同期 |
+| `mirror [vault-path]` | ローカル DB → vault filesystem への一括ミラー |
+| `push <src> <dst>` | vault の**個別ファイル**を DB に書き込む |
+| `pull <src> <dst>` | DB の**個別ファイル**を vault に書き出す |
+
+`pull`/`push` は個別ファイル操作であり、vault 全体の一括操作には使えない。
+vault 全体を DB から取り込むには `mirror` を使う。
+このスクリプトは `sync_pull()` で `sync + mirror`、`push_sync()` で変更ファイルの個別 `push + sync` を呼び出す。
+
+CLI のヘルプを確認するには:
+
+```bash
+npm --prefix <cli_dir> run cli -- --help
 ```
