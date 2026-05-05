@@ -151,6 +151,11 @@ def sync_file(
 
     if file_changed:
         parser.update_file(file_path, todos)
+    # 書き込みがあれば last_script_written_at を更新する。
+    # （次回同期での競合判定の基準時刻となる。update のみで file_changed が
+    # 立たないケースでも更新しないと、google.updated が常に基準より新しいと
+    # 判定されてユーザーの Obsidian 側編集が黙って捨てられる）
+    if result.created > 0 or result.updated > 0:
         db.mark_script_written(conn, str(file_path))
     # 直近 mtime 記録
     new_mtime = str(file_path.stat().st_mtime) if file_path.exists() else None
