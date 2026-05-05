@@ -17,7 +17,10 @@ def run_periodic(cfg: Config) -> int:
     db.initialize(cfg.paths.db_path)
     conn = db.connect(cfg.paths.db_path)
     livesync_cli = LivesyncCli(
-        cli_command=cfg.livesync.cli_command,
+        npm=cfg.livesync.npm,
+        cli_dir=cfg.livesync.cli_dir,
+        db_dir=cfg.livesync.db_dir,
+        vault_dir=str(cfg.paths.vault_dir),
         timeout_sec=cfg.livesync.timeout_sec,
     )
     with locks.lock(

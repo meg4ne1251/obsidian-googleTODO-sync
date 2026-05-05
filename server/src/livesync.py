@@ -17,28 +17,33 @@ class LivesyncError(RuntimeError):
 class LivesyncCli:
     """livesync CLI のラッパー。`sync` / `mirror` / `pull` / `push` を呼び出す。
 
-    実際の CLI が未インストールの環境では `cli_command` が呼び出し可能でない
-    ため例外となる。テストでは `runner` を差し替えて副作用を抑制できる。
+    呼び出し形式:
+      npm --prefix <cli_dir> run cli -- <db_dir> <subcommand> [<vault_dir>]
+
+    テストでは `runner` を差し替えて副作用を抑制できる。
     """
 
     def __init__(
         self,
-        cli_command: str = "livesync-cli",
+        npm: str = "/usr/bin/npm",
+        cli_dir: str = "",
+        db_dir: str = "",
+        vault_dir: str = "",
         timeout_sec: int = 300,
-        cwd: Optional[Path] = None,
         runner=None,
     ) -> None:
-        self.cli_command = cli_command
+        self.npm = npm
+        self.cli_dir = cli_dir
+        self.db_dir = db_dir
+        self.vault_dir = vault_dir
         self.timeout_sec = timeout_sec
-        self.cwd = cwd
         self._runner = runner or self._default_runner
 
     def _default_runner(self, argv: Sequence[str]) -> int:
-        logger.info("livesync-cli %s", " ".join(shlex.quote(a) for a in argv[1:]))
+        logger.info("livesync-cli %s", " ".join(shlex.quote(a) for a in argv))
         try:
             res = subprocess.run(
                 list(argv),
-                cwd=self.cwd,
                 timeout=self.timeout_sec,
                 check=False,
                 capture_output=True,
@@ -46,7 +51,7 @@ class LivesyncCli:
             )
         except FileNotFoundError as exc:
             raise LivesyncError(
-                f"livesync CLI not found: {self.cli_command}"
+                f"npm not found: {self.npm}"
             ) from exc
         except subprocess.TimeoutExpired as exc:
             raise LivesyncError(
@@ -61,20 +66,20 @@ class LivesyncCli:
         return res.returncode
 
     def _run(self, subcommand: str, *args: str) -> None:
-        argv: List[str] = [self.cli_command, subcommand, *args]
+        argv: List[str] = [self.npm, "--prefix", self.cli_dir, "run", "cli", "--", self.db_dir, subcommand, *args]
         self._runner(argv)
 
     def sync(self) -> None:
         self._run("sync")
 
     def mirror(self) -> None:
-        self._run("mirror")
+        self._run("mirror", self.vault_dir)
 
     def pull(self) -> None:
-        self._run("pull")
+        self._run("pull", self.vault_dir)
 
     def push(self) -> None:
-        self._run("push")
+        self._run("push", self.vault_dir)
 
     # 高レベルのフロー：spec セクション7「明示的呼び出し」
     def sync_pull(self) -> None:

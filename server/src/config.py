@@ -18,7 +18,9 @@ class PathsConfig:
 
 @dataclass
 class LivesyncConfig:
-    cli_command: str
+    npm: str
+    cli_dir: str
+    db_dir: str
     timeout_sec: int
 
 
@@ -91,7 +93,9 @@ class Config:
                 log_dir=Path(paths_raw.get("log_dir", "logs")),
             ),
             livesync=LivesyncConfig(
-                cli_command=livesync_raw.get("cli_command", "livesync-cli"),
+                npm=livesync_raw.get("npm", "/usr/bin/npm"),
+                cli_dir=livesync_raw.get("cli_dir", ""),
+                db_dir=livesync_raw.get("db_dir", ""),
                 timeout_sec=int(livesync_raw.get("timeout_sec", 300)),
             ),
             google=GoogleConfig(

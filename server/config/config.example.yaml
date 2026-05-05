@@ -10,8 +10,12 @@ paths:
   log_dir: /var/log/obsidian-sync
 
 livesync:
-  # livesync CLI 実行コマンド（フルパス推奨）
-  cli_command: livesync-cli
+  # npm 実行パス
+  npm: /usr/bin/npm
+  # npm --prefix に渡す CLI ディレクトリ（obsidian-livesync の src/apps/cli）
+  cli_dir: /home/megane/obsidian/obsidian-livesync/src/apps/cli
+  # CLI に渡す CouchDB ディレクトリ
+  db_dir: /home/megane/obsidian/db/
   # 各サブコマンドのタイムアウト秒
   timeout_sec: 300
 
