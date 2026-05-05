@@ -15,10 +15,10 @@ class LivesyncError(RuntimeError):
 
 
 class LivesyncCli:
-    """livesync CLI のラッパー。`sync` / `mirror` / `pull` / `push` を呼び出す。
+    """livesync CLI のラッパー。`sync` / `mirror` / `push` を呼び出す。
 
     呼び出し形式:
-      npm --prefix <cli_dir> run cli -- <db_dir> <subcommand> [<vault_dir>]
+      npm --prefix <cli_dir> run cli -- <db_dir> <subcommand> [args...]
 
     テストでは `runner` を差し替えて副作用を抑制できる。
     """
@@ -75,17 +75,20 @@ class LivesyncCli:
     def mirror(self) -> None:
         self._run("mirror", self.vault_dir)
 
-    def pull(self) -> None:
-        self._run("pull", self.vault_dir)
+    def push_file(self, local_path: Path) -> None:
+        """ローカルの vault ファイル 1 件を DB に書き戻す。
+        DB 内パスは vault_dir からの相対パスとする。"""
+        rel = str(local_path.relative_to(self.vault_dir))
+        self._run("push", str(local_path), rel)
 
-    def push(self) -> None:
-        self._run("push", self.vault_dir)
-
-    # 高レベルのフロー：spec セクション7「明示的呼び出し」
+    # 高レベルのフロー
     def sync_pull(self) -> None:
+        """リモート CouchDB → ローカル DB → vault filesystem の順に取り込む。"""
         self.sync()
-        self.pull()
+        self.mirror()
 
-    def push_sync(self) -> None:
-        self.push()
+    def push_sync(self, modified_files: Optional[List[Path]] = None) -> None:
+        """変更ファイルを DB に書き戻してからリモートへ同期する。"""
+        for f in (modified_files or []):
+            self.push_file(f)
         self.sync()

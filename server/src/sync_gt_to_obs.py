@@ -32,6 +32,7 @@ class GtToObsResult:
     inserted: int = 0
     restored: int = 0
     conflicts_skipped: int = 0
+    files_changed: set = field(default_factory=set)
 
 
 def _to_dt(value: Optional[str]) -> Optional[datetime]:
@@ -166,6 +167,7 @@ def sync_list(
     # ファイル書き込み
     for path in file_changed:
         parser.update_file(path, todos_by_file[path])
+    result.files_changed = file_changed
 
     # 状態更新
     if file_changed:
@@ -201,7 +203,8 @@ def sync_all(
         except Exception:
             logger.exception("Sync failed for list %s", tl.title)
     if livesync is not None:
-        livesync.push_sync()
+        modified = list({f for r in results for f in r.files_changed})
+        livesync.push_sync(modified)
     return results
 
 

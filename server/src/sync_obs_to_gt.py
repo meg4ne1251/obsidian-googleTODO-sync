@@ -108,7 +108,8 @@ def sync_all(
         except Exception:
             logger.exception("Sync failed: %s", f)
     if livesync is not None:
-        livesync.push_sync()
+        modified = [r.file for r in results if r.created > 0]
+        livesync.push_sync(modified)
     return results
 
 
