@@ -72,7 +72,13 @@ class GoogleApiBackend(Backend):
                 flow = InstalledAppFlow.from_client_secrets_file(
                     str(credentials_file), scopes
                 )
-                creds = flow.run_local_server(port=0)
+                import webbrowser
+                try:
+                    webbrowser.get()
+                    creds = flow.run_local_server(port=0)
+                except webbrowser.Error:
+                    # ブラウザが使えないサーバー環境ではコンソール認証にフォールバック
+                    creds = flow.run_console()
             token_file.parent.mkdir(parents=True, exist_ok=True)
             token_file.write_text(creds.to_json(), encoding="utf-8")
         self.service = build("tasks", "v1", credentials=creds, cache_discovery=False)
