@@ -35,7 +35,9 @@ Obsidian アプリは同期サーバー上では動かない。livesync CLI が 
 |---|---|
 | Python | 3.10 以上 |
 | SQLite | Python 標準ライブラリに含まれる |
-| livesync CLI | [obsidian-livesync](https://github.com/vrtmrz/obsidian-livesync) の CLI ツール。別途インストール要 |
+| Node.js | 18 以上（livesync CLI を npm で実行するため必須） |
+| npm | 9 以上（livesync CLI を npm で実行するため必須） |
+| obsidian-livesync | [obsidian-livesync](https://github.com/vrtmrz/obsidian-livesync) リポジトリを clone し、`src/apps/cli` を `cli_dir` に指定する |
 | CouchDB | livesync CLI が接続するサーバー CouchDB（別サーバーでも可） |
 
 ### Obsidian クライアント側
@@ -45,7 +47,7 @@ Obsidian アプリは同期サーバー上では動かない。livesync CLI が 
 | Obsidian | バージョン 1.4.0 以上 |
 | Self-hosted LiveSync プラグイン | Community Plugins から導入 |
 
-### プラグインビルド用（開発時のみ）
+### Obsidian プラグインビルド用（開発時のみ）
 
 | 項目 | バージョン |
 |---|---|
@@ -157,7 +159,9 @@ paths:
   log_dir:   /var/log/obsidian-sync
 
 livesync:
-  cli_command: /usr/local/bin/livesync-cli  # ← livesync CLI のフルパス
+  npm: /usr/bin/npm                          # ← npm のフルパス
+  cli_dir: /path/to/obsidian-livesync/src/apps/cli  # ← obsidian-livesync の CLI ディレクトリ
+  db_dir: /path/to/couchdb/                 # ← CouchDB データディレクトリ
 
 google:
   credentials_file: /opt/obsidian-sync/config/credentials.json
@@ -325,9 +329,14 @@ paths:
   # 各スクリプトのログ出力先ディレクトリ。
 
 livesync:
-  cli_command: livesync-cli
-  # livesync CLI のコマンド。フルパス推奨（例: /usr/local/bin/livesync-cli）。
-  # PATH が通っていれば名前のみでも可。
+  npm: /usr/bin/npm
+  # npm 実行パス。フルパス推奨。
+
+  cli_dir: /path/to/obsidian-livesync/src/apps/cli
+  # npm --prefix に渡す CLI ディレクトリ（obsidian-livesync の src/apps/cli）。
+
+  db_dir: /path/to/couchdb/
+  # CLI に渡す CouchDB データディレクトリ。
 
   timeout_sec: 300
   # livesync の各サブコマンド（sync / mirror / pull / push）のタイムアウト秒。
@@ -463,10 +472,11 @@ tail -f /var/log/obsidian-sync/verify.log
 
 ## トラブルシューティング
 
-### `livesync-cli: command not found`
+### `npm not found` / `livesync CLI が起動しない`
 
-`config.yaml` の `livesync.cli_command` にフルパスを指定する。
-`which livesync-cli` で確認するか、インストール先を確認して絶対パスを設定する。
+`config.yaml` の `livesync.npm` に npm のフルパスを指定する。
+`which npm` で確認して絶対パスを設定する。
+また、`livesync.cli_dir` が obsidian-livesync の `src/apps/cli` を正しく指しているか確認する。
 
 ### `FileNotFoundError: credentials.json`
 
