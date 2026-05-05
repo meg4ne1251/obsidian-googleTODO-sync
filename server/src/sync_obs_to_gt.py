@@ -79,6 +79,25 @@ def sync_file(
     # mtime で全体スキップ判定（最後にスクリプトが書き込んだ後の変更がないなら何もしない）
     state = db.get_sync_state(conn, str(file_path))
     file_mtime = str(file_path.stat().st_mtime) if file_path.exists() else None
+    
+    # 競合判定のために前回の同期日時(last_script_written_at)を取得
+    written_ts = state["last_script_written_at"] if state else None
+    
+    from datetime import datetime, timezone
+    
+    def _to_dt(value: Optional[str]) -> Optional[datetime]:
+        if not value:
+            return None
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+
+    last_script_dt = _to_dt(written_ts)
+
     if state and state["last_obsidian_mtime"] == file_mtime:
         # mtime に変更がない場合でも、新規 (gtasks_id 未付与) のエントリがあれば処理を継続
         has_pending_new = any(t.gtasks_id is None for t in todos)
@@ -90,7 +109,20 @@ def sync_file(
     for idx, todo in enumerate(todos):
         body = mapping.todo_to_gtask_body(todo)
         if todo.gtasks_id and todo.gtasks_id in remote_index:
-            if _task_needs_update(body, remote_index[todo.gtasks_id]):
+            remote_task = remote_index[todo.gtasks_id]
+            
+            if _task_needs_update(body, remote_task):
+                # 競合判定: Google 側で最後にスクリプトが書いた時間より新しく更新されている場合は上書きをスキップ
+                google_updated_dt = _to_dt(remote_task.get("updated"))
+                if (
+                    last_script_dt is not None
+                    and google_updated_dt is not None
+                    and google_updated_dt > last_script_dt
+                ):
+                    logger.warning("  Conflict detected for task '%s'. Google Tasks has newer changes. Skipping update.", todo.title)
+                    result.skipped += 1
+                    continue
+                    
                 logger.info("  Updating task: %s", todo.title)
                 # 削除されたフィールドを確実にクリアするため、明示的に null または空文字を設定
                 if "notes" not in body:
