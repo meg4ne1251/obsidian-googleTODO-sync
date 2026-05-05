@@ -95,16 +95,14 @@ function buildDecorations(
     }
 
     // 末尾に＋ボタンを差し込む（ブロック装飾なので末尾位置）
-    if (blocks.length > 0) {
-        const lastLineNumber = view.state.doc.lines;
-        const lastLine = view.state.doc.line(lastLineNumber);
-        const widget = Decoration.widget({
-            widget: new AddButtonWidget(app, fileGetter),
-            side: 1,
-            block: true,
-        });
-        builder.add(lastLine.to, lastLine.to, widget);
-    }
+    const lastLineNumber = view.state.doc.lines;
+    const lastLine = view.state.doc.line(lastLineNumber);
+    const widget = Decoration.widget({
+        widget: new AddButtonWidget(app, fileGetter),
+        side: 1,
+        block: true,
+    });
+    builder.add(lastLine.to, lastLine.to, widget);
     return builder.finish();
 }
 

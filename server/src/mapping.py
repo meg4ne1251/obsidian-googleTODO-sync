@@ -125,6 +125,10 @@ def merge_from_remote(local: Todo, remote: Todo) -> Todo:
 
     `created::` は Google 側 notes に埋め込みが無い場合 local の値を維持する。
     """
+    if remote.completed:
+        completed_at = remote.completed_at if remote.completed_at is not None else local.completed_at
+    else:
+        completed_at = None
     out = Todo(
         title=remote.title,
         completed=remote.completed,
@@ -132,7 +136,7 @@ def merge_from_remote(local: Todo, remote: Todo) -> Todo:
         due=remote.due,
         notes=remote.notes,
         gtasks_id=remote.gtasks_id or local.gtasks_id,
-        completed_at=remote.completed_at if remote.completed_at is not None else local.completed_at,
+        completed_at=completed_at,
         archived_from=local.archived_from,
         extra_attrs=dict(local.extra_attrs),
         indent=local.indent,
