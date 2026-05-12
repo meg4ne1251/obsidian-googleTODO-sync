@@ -58,18 +58,37 @@ def _task_needs_update(body: dict, remote: dict) -> bool:
     return False
 
 
+def _resolve_tasklist(
+    backend: Backend,
+    list_name: str,
+    tasklists_cache: Optional[Dict[str, TaskList]],
+) -> TaskList:
+    """tasklists_cache があればそれを優先し、無ければ API を叩く。
+
+    cache に登録されていないリスト名は新規作成し、cache にも反映する。
+    """
+    if tasklists_cache is None:
+        return find_or_create_tasklist(backend, list_name)
+    tl = tasklists_cache.get(list_name)
+    if tl is None:
+        tl = backend.create_tasklist(list_name)
+        tasklists_cache[list_name] = tl
+    return tl
+
+
 def sync_file(
     file_path: Path,
     *,
     backend: Backend,
     conn: sqlite3.Connection,
+    tasklists_cache: Optional[Dict[str, TaskList]] = None,
 ) -> FileSyncResult:
     list_name = parser.list_name_from_filename(file_path.name)
     if list_name is None:
         raise ValueError(f"Unsupported filename: {file_path}")
 
     logger.info("Processing file: %s", file_path.name)
-    tl: TaskList = find_or_create_tasklist(backend, list_name)
+    tl: TaskList = _resolve_tasklist(backend, list_name, tasklists_cache)
     todos = parser.parse_file(file_path)
     remote_index = _build_remote_index(backend, tl.id)
 
@@ -177,10 +196,17 @@ def sync_all(
     if livesync is not None:
         livesync.sync_pull()
     files = parser.find_todo_files(cfg.paths.vault_dir)
+    # tasklists は同期実行中に変化しない前提でキャッシュし、
+    # ファイル数 N に対する list_tasklists() の呼び出しを 1 回に抑える。
+    tasklists_cache: Dict[str, TaskList] = {
+        tl.title: tl for tl in backend.list_tasklists()
+    }
     results: List[FileSyncResult] = []
     for f in files:
         try:
-            res = sync_file(f, backend=backend, conn=conn)
+            res = sync_file(
+                f, backend=backend, conn=conn, tasklists_cache=tasklists_cache
+            )
             results.append(res)
         except Exception:
             logger.exception("Sync failed: %s", f)

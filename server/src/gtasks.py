@@ -88,16 +88,27 @@ class GoogleApiBackend(Backend):
             token_file.parent.mkdir(parents=True, exist_ok=True)
             token_file.write_text(creds.to_json(), encoding="utf-8")
         self.service = build("tasks", "v1", credentials=creds, cache_discovery=False)
+        # 直近リクエスト送信時刻。リクエスト間隔を 1 秒以上に保つために利用する。
+        self._last_request_at: float = 0.0
+
+    # Google Tasks API の「100リクエスト/100秒/ユーザー」制限に抵触しないよう、
+    # リクエスト間隔を最低 1 秒空ける（固定スリープではなく、前回からの経過時間で調整）。
+    _MIN_REQUEST_INTERVAL_SEC = 1.0
+
+    def _throttle(self) -> None:
+        elapsed = time.monotonic() - self._last_request_at
+        remaining = self._MIN_REQUEST_INTERVAL_SEC - elapsed
+        if remaining > 0:
+            time.sleep(remaining)
+        self._last_request_at = time.monotonic()
 
     def _execute_with_retry(self, request, max_retries=5, base_delay=1.0):
         import random
         from googleapiclient.errors import HttpError
-        
+
         for attempt in range(max_retries):
             try:
-                # Google Tasks API の「100リクエスト/100秒/ユーザー」制限に抵触しないよう、
-                # リクエスト間にウェイトを入れる（安全のため1秒）
-                time.sleep(1.0)
+                self._throttle()
                 return request.execute()
             except HttpError as e:
                 # 403 (Quota Exceeded / Rate Limit), 429 (Too Many Requests), 5xx エラーの場合リトライ
@@ -124,6 +135,11 @@ class GoogleApiBackend(Backend):
         resp = self._execute_with_retry(req)
         return TaskList(id=resp["id"], title=resp["title"])
 
+    # list_tasks のレスポンスで必要なフィールドのみ。転送量・パース時間を削減。
+    _TASK_FIELDS = (
+        "items(id,title,status,notes,due,completed,updated),nextPageToken"
+    )
+
     def list_tasks(self, tasklist_id: str, *, show_completed: bool = True,
                    updated_min: Optional[str] = None,
                    show_hidden: bool = True) -> List[dict]:
@@ -136,6 +152,7 @@ class GoogleApiBackend(Backend):
                 showCompleted=show_completed,
                 showHidden=show_hidden,
                 pageToken=page_token,
+                fields=self._TASK_FIELDS,
             )
             if updated_min:
                 params["updatedMin"] = updated_min
