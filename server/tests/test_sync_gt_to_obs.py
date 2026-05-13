@@ -53,7 +53,7 @@ class GtToObsTest(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].inserted, 1)
 
-        f = self.cfg.paths.vault_dir / "todo-仕事.md"
+        f = self.cfg.paths.vault_dir / "01_todo" / "todo-仕事.md"
         text = f.read_text(encoding="utf-8")
         self.assertIn("- [ ] リモート発タスク", text)
         self.assertIn("created:: 2025-05-10", text)
@@ -65,7 +65,9 @@ class GtToObsTest(unittest.TestCase):
         # まず Obsidian 側にタスクを作って remote と紐付ける
         tl = self.backend.create_tasklist("仕事")
         created = self.backend.insert_task(tl.id, {"title": "old", "status": "needsAction"})
-        f = self.cfg.paths.vault_dir / "todo-仕事.md"
+        todo_dir = self.cfg.paths.vault_dir / "01_todo"
+        todo_dir.mkdir(exist_ok=True)
+        f = todo_dir / "todo-仕事.md"
         f.write_text(
             f"- [ ] old\n  gtasks_id:: {created['id']}\n", encoding="utf-8"
         )
@@ -82,7 +84,9 @@ class GtToObsTest(unittest.TestCase):
         # last_script_written_at を未来に設定 → google 側 update が古ければスキップ
         tl = self.backend.create_tasklist("仕事")
         created = self.backend.insert_task(tl.id, {"title": "x", "status": "needsAction"})
-        f = self.cfg.paths.vault_dir / "todo-仕事.md"
+        todo_dir = self.cfg.paths.vault_dir / "01_todo"
+        todo_dir.mkdir(exist_ok=True)
+        f = todo_dir / "todo-仕事.md"
         f.write_text(f"- [ ] x\n  gtasks_id:: {created['id']}\n", encoding="utf-8")
         # last_script_written_at を未来へ
         future = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S")
@@ -115,7 +119,7 @@ class GtToObsTest(unittest.TestCase):
         arch_path.write_text(
             "- [x] 復元テスト\n"
             "  completed_at:: 2025-04-30T14:00:00+09:00\n"
-            "  archived_from:: todo-仕事.md\n"
+            "  archived_from:: 01_todo/todo-仕事.md\n"
             f"  gtasks_id:: {gid}\n",
             encoding="utf-8",
         )
@@ -131,7 +135,7 @@ class GtToObsTest(unittest.TestCase):
         # アーカイブ DB から消えている
         self.assertNotIn(gid, db.list_archived_ids(self.conn))
         # アーカイブから消えてアクティブに戻っている
-        active = self.cfg.paths.vault_dir / "todo-仕事.md"
+        active = self.cfg.paths.vault_dir / "01_todo" / "todo-仕事.md"
         self.assertIn("- [ ] 復元テスト", active.read_text(encoding="utf-8"))
         # アーカイブファイルは残っているがエントリ削除済み
         self.assertEqual(arch_path.read_text(encoding="utf-8").strip(), "")
@@ -147,7 +151,7 @@ class GtToObsTest(unittest.TestCase):
         db.add_archived(self.conn, created["id"], "仕事")
         results = sync_gt_to_obs.sync_all(self.cfg, backend=self.backend, conn=self.conn)
         # active ファイルは作成されない（archived_completed なので無視）
-        self.assertFalse((self.cfg.paths.vault_dir / "todo-仕事.md").exists())
+        self.assertFalse((self.cfg.paths.vault_dir / "01_todo" / "todo-仕事.md").exists())
         self.assertEqual(results[0].inserted, 0)
 
 

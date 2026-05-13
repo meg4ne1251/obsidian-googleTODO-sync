@@ -86,7 +86,7 @@ def archive_file(
     archive_path = archives_dir / f"todo-{list_name}-アーカイブ.md"
     existing_arch = parser.parse_file(archive_path)
     for t in to_archive:
-        t.archived_from = file_path.name
+        t.archived_from = str(file_path.relative_to(vault_dir))
         existing_arch.append(t)
         if t.gtasks_id:
             db.add_archived(conn, t.gtasks_id, list_name)

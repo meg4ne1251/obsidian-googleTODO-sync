@@ -77,7 +77,7 @@ def sync_list(
     if not google_tasks:
         return result
 
-    target_file = vault_dir / f"todo-{list_name}.md"
+    target_file = vault_dir / "01_todo" / f"todo-{list_name}.md"
     archive_file = vault_dir / "archives" / f"todo-{list_name}-アーカイブ.md"
     archived_ids = db.list_archived_ids(conn)
 
@@ -108,7 +108,7 @@ def sync_list(
             if existing_archive is not None:
                 arch_path, arch_idx = existing_archive
                 archived_todo = todos_by_file[arch_path][arch_idx]
-                origin = archived_todo.archived_from or f"todo-{list_name}.md"
+                origin = archived_todo.archived_from or f"01_todo/todo-{list_name}.md"
                 origin_path = vault_dir / origin
                 if origin_path not in todos_by_file:
                     todos_by_file[origin_path] = parser.parse_file(origin_path)

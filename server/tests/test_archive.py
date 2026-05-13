@@ -37,7 +37,9 @@ class ArchiveTest(unittest.TestCase):
         self.tmp = Path(self._tmp.name)
         self.cfg = make_cfg(self.tmp)
         self.conn = db.connect(self.cfg.paths.db_path)
-        self.f = self.cfg.paths.vault_dir / "todo-仕事.md"
+        todo_dir = self.cfg.paths.vault_dir / "01_todo"
+        todo_dir.mkdir(exist_ok=True)
+        self.f = todo_dir / "todo-仕事.md"
 
     def tearDown(self) -> None:
         self.conn.close()
@@ -68,7 +70,7 @@ class ArchiveTest(unittest.TestCase):
         archived_todos = parser.parse_file(arch)
         self.assertEqual(len(archived_todos), 1)
         self.assertEqual(archived_todos[0].gtasks_id, "T0001")
-        self.assertEqual(archived_todos[0].archived_from, "todo-仕事.md")
+        self.assertEqual(archived_todos[0].archived_from, "01_todo/todo-仕事.md")
 
         # archived_tasks テーブルに記録
         self.assertIn("T0001", db.list_archived_ids(self.conn))
@@ -81,7 +83,7 @@ class ArchiveTest(unittest.TestCase):
         existing_arch.write_text(
             "- [x] previous\n"
             "  completed_at:: 2024-01-01T00:00:00+09:00\n"
-            "  archived_from:: todo-仕事.md\n"
+            "  archived_from:: todo/todo-仕事.md\n"
             "  gtasks_id:: TPREV\n",
             encoding="utf-8",
         )
